@@ -2,6 +2,9 @@
 
 # dependencies
 Front/node_modules/
+Back/node_modules/
+
+Back/uploads
 
 # Expo
 Front/.expo/
