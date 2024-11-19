@@ -1,53 +1,59 @@
-const express = require('express');
-const multer = require('multer');
-const { exec } = require('child_process');
-const path = require('path');
-const bodyParser = require('body-parser');
-
+const express = require("express");
+const multer = require("multer");
+const { spawn } = require("child_process");
+const path = require("path");
 const app = express();
-const PORT = 3000;
 
-// Middleware pour parser le JSON
-app.use(bodyParser.json());
-
-// Configurer multer pour gérer les fichiers uploadés
-const upload = multer({
-  dest: './upload', // Dossier où les fichiers seront stockés temporairement
-  limits: { fileSize: 10 * 1024 * 1024 }, // Taille max : 10 MB
+// Configuration de multer pour la gestion des uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Les images seront sauvegardées dans le dossier 'uploads/'
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Nomme le fichier avec timestamp + extension
+  },
 });
 
-// Route POST pour analyser une image
-app.post('/analyze', upload.single('image'), (req, res) => {
-  // Vérification si un fichier a été uploadé
+const upload = multer({ storage: storage });
+
+// Route pour recevoir l'image
+app.post("/process-image", upload.single("image"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'Aucun fichier envoyé.' });
+    return res.status(400).json({ error: "Aucune image n'a été envoyée" });
   }
 
-  const uploadedImagePath = path.resolve(req.file.path);
+  const imagePath = req.file.path;
 
-  // Commande pour exécuter le script Python
-  const pythonCommand = `python3 ./script.py`;
+  // Appel du script Python avec le chemin de l'image comme paramètre
+  const pythonProcess = spawn("python", ["script.py", imagePath]);
 
-  console.log(`Exécution de la commande : ${pythonCommand}`);
+  let pythonData = "";
 
-  // Exécution du script Python
-  exec(pythonCommand, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Erreur lors de l'exécution du script : ${error.message}`);
-      return res.status(500).json({ error: 'Erreur interne du serveur' });
+  // Récupération de la sortie du script Python
+  pythonProcess.stdout.on("data", (data) => {
+    pythonData += data.toString();
+  });
+
+  // Gestion des erreurs du script Python
+  pythonProcess.stderr.on("data", (data) => {
+    console.error(`Erreur du script Python: ${data}`);
+  });
+
+  // Lorsque le script Python se termine
+  pythonProcess.on("close", (code) => {
+    if (code !== 0) {
+      return res
+        .status(500)
+        .json({ error: "Erreur lors de l'exécution du script Python" });
     }
-
-    if (stderr) {
-      console.error(`Erreur Python : ${stderr}`);
-      return res.status(500).json({ error: 'Erreur dans le script Python', details: stderr });
-    }
-
-    // Retourner la réponse du script Python
-    res.json({ message: 'Analyse terminée', result: stdout });
+    res.json({
+      result: pythonData,
+      imagePath: imagePath,
+    });
   });
 });
 
-// Lancer le serveur
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Serveur lancé sur http://localhost:${PORT}`);
+  console.log(`Serveur démarré sur le port ${PORT}`);
 });
