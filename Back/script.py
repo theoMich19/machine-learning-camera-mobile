@@ -1,64 +1,73 @@
 import os
-import sys
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans
-from nltk.corpus import stopwords
-import nltk
+import cv2
+import numpy as np
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.preprocessing.image import img_to_array
+from sklearn.metrics.pairwise import cosine_similarity
 
-# Vérifier si les données nécessaires sont déjà téléchargées
-nltk_data_path = os.path.expanduser('~/nltk_data')
-if not os.path.exists(nltk_data_path):
-    nltk.download('stopwords', quiet=True)
-else:
-    try:
-        stopwords.words('english')  # Essayer d'accéder aux stopwords
-    except LookupError:
-        nltk.download('stopwords', quiet=True)
+# Désactiver la barre de progression
+model = ResNet50(weights="imagenet", include_top=False, pooling='avg', progress_bar=False)
 
 
-def load_data(file_path):
-    """Charger le dataset."""
-    data = pd.read_csv(file_path)
-    return data
 
+def load_and_preprocess_image(image_path):
+    """Charge et prétraite une image pour le modèle."""
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, (224, 224))  # Dimension standard pour ResNet
+    img = img_to_array(img)
+    img = np.expand_dims(img, axis=0)
+    img = preprocess_input(img)
+    return img
 
-def preprocess_data(data):
-    """Préparer les données pour l'entraînement."""
-    stop_words = stopwords.words('french')
-    vectorizer = TfidfVectorizer(stop_words=stop_words, ngram_range=(1, 2), max_df=0.85)
-    X = vectorizer.fit_transform(data['Comment'])
-    return X, vectorizer
+def extract_features(image_path):
+    """Extrait les caractéristiques de l'image en utilisant ResNet50."""
+    img = load_and_preprocess_image(image_path)
+    features = model.predict(img)
+    return features
 
+def find_images_in_subfolders(folder):
+    """Parcourt un dossier et ses sous-dossiers pour trouver toutes les images."""
+    image_paths = []
+    for root, _, files in os.walk(folder):
+        for file in files:
+            if file.lower().endswith(('png', 'jpg', 'jpeg')):
+                image_paths.append(os.path.join(root, file))
+    return image_paths
 
-def train_kmeans(X, n_clusters=3):
-    """Former le modèle K-means."""
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    kmeans.fit(X)
-    return kmeans
+def find_most_similar(upload_image, data_folder):
+    """Trouve l'image la plus similaire dans le dossier data et ses sous-dossiers."""
+    # Extraire les caractéristiques de l'image uploadée
+    upload_features = extract_features(upload_image)
+    
+    similarities = {}
+    # Parcourir toutes les images dans les sous-dossiers
+    data_images = find_images_in_subfolders(data_folder)
+    for data_image_path in data_images:
+        data_features = extract_features(data_image_path)
+        
+        # Calcul de la similarité cosinus
+        similarity = cosine_similarity(upload_features, data_features)[0][0]
+        similarities[data_image_path] = similarity
+    
+    # Trouver l'image avec la similarité la plus élevée
+    most_similar_image = max(similarities, key=similarities.get)
+    return most_similar_image, similarities[most_similar_image]
 
+def main():
+    upload_folder = "./upload"
+    data_folder = "./data"
+    
+    # Vérifier qu'il y a bien une image dans le dossier upload
+    upload_images = [f for f in os.listdir(upload_folder) if f.lower().endswith(('png', 'jpg', 'jpeg'))]
+    if not upload_images:
+        print("Aucune image trouvée dans le dossier upload.")
+        return
 
-def classify_comment(comment, vectorizer, kmeans):
-    """Classifier un commentaire passé en entrée."""
-    X_new = vectorizer.transform([comment])  # Transformer le commentaire
-    cluster = kmeans.predict(X_new)  # Prédire le cluster
-    return cluster[0]  # Retourner le numéro du cluster
+    upload_image = os.path.join(upload_folder, upload_images[0])  # On prend la première image
+    most_similar_image, similarity_score = find_most_similar(upload_image, data_folder)
 
+    print(f"L'image la plus similaire est : {most_similar_image} avec un score de similarité de {similarity_score:.2f}")
 
 if __name__ == "__main__":
-    # Chemin du dataset
-    file_path = "comments.csv"
-    
-    # Charger et traiter les données
-    data = load_data(file_path)
-    X, vectorizer = preprocess_data(data)
-    
-    # Former K-means
-    kmeans = train_kmeans(X, n_clusters=3)
-    
-    # Lire le commentaire passé en argument
-    comment_to_classify = sys.argv[1]
-    
-    # Classifier le commentaire
-    cluster = classify_comment(comment_to_classify, vectorizer, kmeans)
-    print(cluster)  # Retourner le cluster en sortie
+    main()
