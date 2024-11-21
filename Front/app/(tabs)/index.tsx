@@ -1,39 +1,48 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useState, useEffect } from 'react';
-import { View, Text, Button } from 'react-native';
+import { Image, StyleSheet, Platform, View } from "react-native";
 
-const App = () => {
-  const [image, setImage] = useState(null);
+import { HelloWave } from "@/components/HelloWave";
+import ParallaxScrollView from "@/components/ParallaxScrollView";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Sorry, we need camera permissions to make this work!');
-      }
-    })();
-  }, []);
+import { Camera, CameraMode, CameraView, FlashMode } from "expo-camera";
+import * as WebBrowser from "expo-web-browser";
+import React from "react";
+import IconButton from "@/components/iconButton";
+import BottomRowTools from "@/components/BottomRowTools";
+import CameraTools from "@/components/CameraTools";
+import PictureView from "@/components/PictureView";
 
-  const takePicture = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4,  
- 3],
-      quality: 1,
-    });
+export default function HomeScreen() {
+  const cameraRef = React.useRef<CameraView>(null);
+  const [cameraTorch, setCameraTorch] = React.useState<boolean>(false);
+  const [cameraFacing, setCameraFacing] = React.useState<"front" | "back">(
+    "back"
+  );
+  const [picture, setPicture] = React.useState<string>("");
 
-    if (!result.canceled) {
-      setImage(result.uri);
-    }
-  };
+  async function handleTakePicture() {
+    const response = await cameraRef.current?.takePictureAsync({});
+    setPicture(response!.uri);
+  }
 
+  if (picture) return <PictureView picture={picture} setPicture={setPicture} />;
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      {image && <Image source={{ uri: image }} style={{ width: 200, height: 200 }} />}
-      <Button title="Take Picture" onPress={takePicture} />
+    <View style={{ flex: 1 }}>
+      <CameraView
+        ref={cameraRef}
+        mode="picture"
+        style={{ flex: 1 }}
+        facing={cameraFacing}
+        enableTorch={cameraTorch}
+      >
+        <CameraTools
+          cameraTorch={cameraTorch}
+          setCameraFacing={setCameraFacing}
+          setCameraTorch={setCameraTorch}
+        />
+        <BottomRowTools handleTakePicture={handleTakePicture} />
+      </CameraView>
     </View>
   );
-};
-
-export default App;
+}
