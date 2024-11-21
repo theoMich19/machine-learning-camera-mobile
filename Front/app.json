@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "machine-learning-camera-mobile",
-    "slug": "machine-learning-camera-mobile",
+    "name": "Front",
+    "slug": "Front",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,16 +17,12 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
-    },
-    "ios": {
-      "permissions": [
-        "CAMERA",
-        "PHOTO_LIBRARY"
-      ]
+        "android.permissions.READ_EXTERNAL_STORAGE",
+        "android.permissions.WRITE_EXTERNAL_STORAGE",
+        "android.permissions.ACCESS_MEDIA_LOCATION",
+        "android.permissions.CAMERA"
+      ],
+      "package": "com.anonymous.Front"
     },
     "web": {
       "bundler": "metro",
@@ -44,10 +40,21 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Permettre à $(PRODUCT_NAME) d'accéder à votre caméra."
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
         }
       ]
     ],
