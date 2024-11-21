@@ -53,6 +53,11 @@ app.post("/process-image", upload.single("image"), (req, res) => {
   });
 });
 
+app.post("/coucou", (req, res) => {
+  const message = "Coucou, toi!";
+  res.status(200).json({ message });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
