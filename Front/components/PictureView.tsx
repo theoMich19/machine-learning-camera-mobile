@@ -19,7 +19,7 @@ export default function PictureView({ picture, setPicture }: PictureViewProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   async function sendPicture() {
-    const url = "http://192.168.1.53:3000/process-image"; // Remplacez par votre URL
+    const url = "http://192.168.1.40:3000/process-image"; // Remplacez par votre URL
 
     try {
       setIsLoading(true);
