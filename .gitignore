@@ -6,6 +6,7 @@ Back/node_modules/
 
 Back/uploads/*
 Back/cosplay_classifier.h5
+cosplay_classifier.h5
 
 # Expo
 Front/.expo/
