@@ -47,7 +47,7 @@ app.post("/process-image", upload.single("image"), (req, res) => {
         .json({ error: "Erreur lors de l'exécution du script Python" });
     }
     res.json({
-      result: pythonData,
+      message: pythonData,
       imagePath: imagePath,
     });
   });
